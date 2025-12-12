@@ -23,11 +23,27 @@ Run:
 
 ## Setup (OAuth)
 
-1. Create OAuth credentials in Google Cloud Console (Desktop app) and enable the APIs you need.
-2. Store the downloaded client JSON:
-   - `gog auth credentials ~/path/to/credentials.json`
-3. Authorize your account (refresh token stored in OS keychain via `github.com/99designs/keyring`):
-   - `gog auth add you@gmail.com`
+Before adding an account you need OAuth2 credentials from Google Cloud Console:
+
+1. Create a project (or select an existing one): https://console.cloud.google.com/projectcreate
+2. Enable the APIs you need:
+   - Gmail API: https://console.cloud.google.com/apis/api/gmail.googleapis.com
+   - Google Calendar API: https://console.cloud.google.com/apis/api/calendar-json.googleapis.com
+   - Google Drive API: https://console.cloud.google.com/apis/api/drive.googleapis.com
+   - People API (Contacts): https://console.cloud.google.com/apis/api/people.googleapis.com
+3. Set app name / branding (OAuth consent screen): https://console.cloud.google.com/auth/branding
+4. If your app is in “Testing”, add test users (all Google accounts you’ll use with `gog`): https://console.cloud.google.com/auth/audience
+5. Create an OAuth client: https://console.cloud.google.com/auth/clients
+   - Click “Create Client”
+   - Application type: “Desktop app”
+   - Download the JSON file (usually named like `client_secret_....apps.googleusercontent.com.json`)
+
+Then:
+
+- Store the downloaded client JSON (no renaming required):
+  - `gog auth credentials ~/Downloads/client_secret_....json`
+- Authorize your account (refresh token stored in OS keychain via `github.com/99designs/keyring`):
+  - `gog auth add you@gmail.com`
 
 Notes:
 
