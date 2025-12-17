@@ -24,6 +24,8 @@ func newGmailCmd(flags *rootFlags) *cobra.Command {
 	}
 	cmd.AddCommand(newGmailSearchCmd(flags))
 	cmd.AddCommand(newGmailThreadCmd(flags))
+	cmd.AddCommand(newGmailGetCmd(flags))
+	cmd.AddCommand(newGmailAttachmentCmd(flags))
 	cmd.AddCommand(newGmailURLCmd(flags))
 	cmd.AddCommand(newGmailLabelsCmd(flags))
 	cmd.AddCommand(newGmailSendCmd(flags))
