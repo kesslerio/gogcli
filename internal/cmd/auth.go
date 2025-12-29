@@ -501,10 +501,11 @@ func newAuthManageCmd() *cobra.Command {
 	var timeout time.Duration
 
 	cmd := &cobra.Command{
-		Use:   "manage",
-		Short: "Open accounts manager in browser",
-		Long:  "Opens a browser-based UI to manage Google accounts, add new accounts, set defaults, and remove accounts.",
-		Args:  cobra.NoArgs,
+		Use:     "manage",
+		Aliases: []string{"login"},
+		Short:   "Open accounts manager in browser",
+		Long:    "Opens a browser-based UI to manage Google accounts, add new accounts, set defaults, and remove accounts.",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var services []googleauth.Service
 			if strings.EqualFold(strings.TrimSpace(servicesCSV), "") || strings.EqualFold(strings.TrimSpace(servicesCSV), "all") {
