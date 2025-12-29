@@ -632,7 +632,7 @@
         </div>
 
         <footer class="footer">
-            <p>Closing in <span id="countdown">30</span> seconds...</p>
+            <p>Closing in <span id="countdown">{{.CountdownSeconds}}</span> seconds...</p>
             <p class="github-link">
                 <a href="https://github.com/steipete/gogcli" target="_blank" rel="noopener noreferrer">
                     <span class="icon-github"></span>
@@ -642,9 +642,7 @@
         </footer>
     </div>
     <script>
-        // Countdown seconds until page closes.
-        // Authoritative value: postSuccessDisplaySeconds in oauth_flow.go
-        let seconds = 30;
+        let seconds = {{.CountdownSeconds}};
         const countdownEl = document.getElementById('countdown');
         const interval = setInterval(() => {
             seconds--;
