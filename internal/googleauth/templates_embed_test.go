@@ -13,14 +13,14 @@ func TestEmbeddedTemplates_Parse(t *testing.T) {
 		data any
 	}{
 		{name: "accounts", src: accountsTemplate, data: struct{ CSRFToken string }{CSRFToken: "csrf"}},
-		{name: "success_with_email", src: successTemplate, data: struct {
-			Email    string
-			Services []string
-		}{Email: "a@b.com", Services: []string{"gmail", "drive"}}},
-		{name: "success_without_email", src: successTemplate, data: struct {
-			Email    string
-			Services []string
-		}{}},
+		{name: "success_with_email", src: successTemplate, data: successTemplateData{
+			Email:            "a@b.com",
+			Services:         []string{"gmail", "drive"},
+			CountdownSeconds: 30,
+		}},
+		{name: "success_without_email", src: successTemplate, data: successTemplateData{
+			CountdownSeconds: 30,
+		}},
 		{name: "error", src: errorTemplate, data: struct{ Error string }{Error: "boom"}},
 		{name: "cancelled", src: cancelledTemplate, data: struct{}{}},
 	}

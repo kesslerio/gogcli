@@ -388,12 +388,10 @@ func renderSuccessPageWithDetails(w http.ResponseWriter, email string, services 
 		_, _ = w.Write([]byte("Success! You can close this window."))
 		return
 	}
-	data := struct {
-		Email    string
-		Services []string
-	}{
-		Email:    email,
-		Services: services,
+	data := successTemplateData{
+		Email:            email,
+		Services:         services,
+		CountdownSeconds: postSuccessDisplaySeconds,
 	}
 	_ = tmpl.Execute(w, data)
 }

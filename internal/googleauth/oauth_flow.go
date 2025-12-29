@@ -30,9 +30,15 @@ type AuthorizeOptions struct {
 }
 
 // postSuccessDisplaySeconds is the number of seconds the success page remains
-// visible before the local OAuth server shuts down. This value must match the
-// JavaScript countdown in templates/success.html.
+// visible before the local OAuth server shuts down.
 const postSuccessDisplaySeconds = 30
+
+// successTemplateData holds data passed to the success page template.
+type successTemplateData struct {
+	Email            string
+	Services         []string
+	CountdownSeconds int
+}
 
 var (
 	readClientCredentials = config.ReadClientCredentials
@@ -253,7 +259,10 @@ func renderSuccessPage(w http.ResponseWriter) {
 		_, _ = w.Write([]byte("Success! You can close this window."))
 		return
 	}
-	_ = tmpl.Execute(w, nil)
+	data := successTemplateData{
+		CountdownSeconds: postSuccessDisplaySeconds,
+	}
+	_ = tmpl.Execute(w, data)
 }
 
 // renderErrorPage renders the error HTML template with the given message
