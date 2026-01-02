@@ -19,10 +19,11 @@ import (
 )
 
 var (
-	openSecretsStore  = secrets.OpenDefault
-	authorizeGoogle   = googleauth.Authorize
-	startManageServer = googleauth.StartManageServer
-	checkRefreshToken = googleauth.CheckRefreshToken
+	openSecretsStore     = secrets.OpenDefault
+	authorizeGoogle      = googleauth.Authorize
+	startManageServer    = googleauth.StartManageServer
+	checkRefreshToken    = googleauth.CheckRefreshToken
+	ensureKeychainAccess = secrets.EnsureKeychainAccess
 )
 
 type AuthCmd struct {
@@ -325,6 +326,11 @@ func (c *AuthAddCmd) Run(ctx context.Context) error {
 	scopes, err := googleauth.ScopesForServices(services)
 	if err != nil {
 		return err
+	}
+
+	// Pre-flight: ensure keychain is accessible before starting OAuth
+	if err := ensureKeychainAccess(); err != nil {
+		return fmt.Errorf("keychain access: %w", err)
 	}
 
 	refreshToken, err := authorizeGoogle(ctx, googleauth.AuthorizeOptions{
