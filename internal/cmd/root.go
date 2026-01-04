@@ -34,7 +34,7 @@ type CLI struct {
 	Docs       DocsCmd       `cmd:"" help:"Google Docs (export via Drive)"`
 	Slides     SlidesCmd     `cmd:"" help:"Google Slides"`
 	Calendar   CalendarCmd   `cmd:"" help:"Google Calendar"`
-	Gmail      GmailCmd      `cmd:"" help:"Gmail"`
+	Gmail      GmailCmd      `cmd:"" aliases:"mail,email" help:"Gmail"`
 	Contacts   ContactsCmd   `cmd:"" help:"Google Contacts"`
 	Tasks      TasksCmd      `cmd:"" help:"Google Tasks"`
 	People     PeopleCmd     `cmd:"" help:"Google People"`
