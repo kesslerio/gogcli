@@ -159,20 +159,28 @@ func TestScopesForServices_UnionSorted(t *testing.T) {
 	}
 }
 
-func TestScopes_DocsIncludesDriveScope(t *testing.T) {
+func TestScopes_DocsIncludesDriveAndDocsScopes(t *testing.T) {
 	scopes, err := Scopes(ServiceDocs)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	want := "https://www.googleapis.com/auth/drive"
-	for _, scope := range scopes {
-		if scope == want {
-			return
+	for _, want := range []string{
+		"https://www.googleapis.com/auth/drive",
+		"https://www.googleapis.com/auth/documents",
+	} {
+		found := false
+		for _, scope := range scopes {
+			if scope == want {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Fatalf("missing %q in %v", want, scopes)
 		}
 	}
-
-	t.Fatalf("missing %q in %v", want, scopes)
 }
 
 func TestScopes_UnknownService(t *testing.T) {

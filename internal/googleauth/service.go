@@ -55,9 +55,12 @@ var serviceInfoByService = map[Service]serviceInfo{
 	},
 	ServiceDocs: {
 		// Docs commands are implemented via Drive APIs (export/copy/create),
-		// so use Drive scope to match actual access needs.
-		scopes: []string{"https://www.googleapis.com/auth/drive"},
-		user:   true,
+		// but also request the Docs scope for parity/future use.
+		scopes: []string{
+			"https://www.googleapis.com/auth/drive",
+			"https://www.googleapis.com/auth/documents",
+		},
+		user: true,
 	},
 	ServiceContacts: {
 		scopes: []string{
