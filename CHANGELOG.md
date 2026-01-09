@@ -44,6 +44,7 @@
 - Auth: OAuth browser flow now finishes immediately after callback; manual OAuth paste accepts EOF; verify requested account matches authorized email; store tokens under the real account email (Google userinfo).
 - Auth: `gog auth tokens list` filters non-token keyring entries.
 - Gmail: watch push dedupe/historyId sync improvements; List-Unsubscribe extraction; MIME normalization + padded base64url support (#52) — thanks @antons.
+- Gmail: drafts update preserves thread/reply headers when updating existing drafts (#55) — thanks @antons.
 
 ### Changed
 

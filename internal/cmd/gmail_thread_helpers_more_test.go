@@ -56,6 +56,7 @@ func TestGmailURLCmd_TextAndJSON(t *testing.T) {
 }
 
 func TestGmailURLCmd_MissingAccount(t *testing.T) {
+	t.Setenv("GOG_ACCOUNT", "")
 	if err := (&GmailURLCmd{ThreadIDs: []string{"t1"}}).Run(context.Background(), &RootFlags{}); err == nil {
 		t.Fatalf("expected error")
 	}

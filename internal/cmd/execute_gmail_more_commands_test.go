@@ -72,7 +72,7 @@ func TestExecute_GmailThreadDraftsSend_JSON(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": attEncoded})
 			return
-		case strings.Contains(path, "/gmail/v1/users/me/drafts") && r.Method == http.MethodGet:
+		case strings.HasSuffix(path, "/gmail/v1/users/me/drafts") && r.Method == http.MethodGet:
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"drafts":        []map[string]any{{"id": "d1", "message": map[string]any{"id": "m1", "threadId": "t1"}}},
@@ -96,6 +96,30 @@ func TestExecute_GmailThreadDraftsSend_JSON(t *testing.T) {
 						},
 					},
 				},
+			})
+			return
+		case strings.Contains(path, "/gmail/v1/users/me/threads/t1") && r.Method == http.MethodGet:
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id": "t1",
+				"messages": []map[string]any{
+					{
+						"id":       "m1",
+						"threadId": "t1",
+						"payload": map[string]any{
+							"headers": []map[string]any{
+								{"name": "Message-ID", "value": "<m1@example.com>"},
+							},
+						},
+					},
+				},
+			})
+			return
+		case strings.Contains(path, "/gmail/v1/users/me/drafts/d1") && r.Method == http.MethodPut:
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":      "d1",
+				"message": map[string]any{"id": "m1", "threadId": "t1"},
 			})
 			return
 		case strings.Contains(path, "/gmail/v1/users/me/drafts/d1") && r.Method == http.MethodDelete:
@@ -166,6 +190,11 @@ func TestExecute_GmailThreadDraftsSend_JSON(t *testing.T) {
 		_ = captureStdout(t, func() {
 			if err := Execute([]string{"--json", "--account", "a@b.com", "gmail", "drafts", "create", "--to", "x@y.com", "--subject", "S", "--body", "B"}); err != nil {
 				t.Fatalf("drafts create: %v", err)
+			}
+		})
+		_ = captureStdout(t, func() {
+			if err := Execute([]string{"--json", "--account", "a@b.com", "gmail", "drafts", "update", "d1", "--to", "x@y.com", "--subject", "Updated", "--body", "B"}); err != nil {
+				t.Fatalf("drafts update: %v", err)
 			}
 		})
 		_ = captureStdout(t, func() {

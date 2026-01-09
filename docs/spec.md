@@ -178,6 +178,7 @@ Flag aliases:
 - `gog gmail drafts list [--max N] [--page TOKEN]`
 - `gog gmail drafts get <draftId> [--download]`
 - `gog gmail drafts create --to a@b.com --subject S [--body B] [--body-html H] [--cc ...] [--bcc ...] [--reply-to-message-id <messageId>] [--reply-to addr] [--attach <file>...]`
+- `gog gmail drafts update <draftId> --to a@b.com --subject S [--body B] [--body-html H] [--cc ...] [--bcc ...] [--reply-to-message-id <messageId>] [--reply-to addr] [--attach <file>...]`
 - `gog gmail drafts send <draftId>`
 - `gog gmail drafts delete <draftId>`
 - `gog gmail watch start|status|renew|stop|serve`
