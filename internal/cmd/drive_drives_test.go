@@ -88,6 +88,9 @@ func TestDriveDrivesCmd_TextAndJSON(t *testing.T) {
 	if !strings.Contains(textOut, "0EFGH5678") || !strings.Contains(textOut, "Marketing") {
 		t.Fatalf("missing second drive row: %q", textOut)
 	}
+	if !strings.Contains(textOut, "2024-01-15 10:30") || !strings.Contains(textOut, "2024-03-22 14:15") {
+		t.Fatalf("missing formatted created times: %q", textOut)
+	}
 	if !strings.Contains(errBuf.String(), "--page npt123") {
 		t.Fatalf("missing next page hint: %q", errBuf.String())
 	}
@@ -176,9 +179,13 @@ func TestDriveDrivesCmd_WithQuery(t *testing.T) {
 	t.Cleanup(func() { newDriveService = origNew })
 
 	var capturedQuery string
+	var capturedFields string
+	var capturedPageSize string
 	var capturedPageToken string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedQuery = r.URL.Query().Get("q")
+		capturedFields = r.URL.Query().Get("fields")
+		capturedPageSize = r.URL.Query().Get("pageSize")
 		capturedPageToken = r.URL.Query().Get("pageToken")
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -215,7 +222,7 @@ func TestDriveDrivesCmd_WithQuery(t *testing.T) {
 
 	_ = captureStdout(t, func() {
 		cmd := &DriveDrivesCmd{}
-		if execErr := runKong(t, cmd, []string{"--query", " name contains 'Eng' ", "--page", " tok "}, ctx, flags); execErr != nil {
+		if execErr := runKong(t, cmd, []string{"--query", " name contains 'Eng' ", "--page", " tok ", "--max", "7"}, ctx, flags); execErr != nil {
 			t.Fatalf("execute: %v", execErr)
 		}
 	})
@@ -223,7 +230,64 @@ func TestDriveDrivesCmd_WithQuery(t *testing.T) {
 	if capturedQuery != "name contains 'Eng'" {
 		t.Fatalf("expected query to be passed, got: %q", capturedQuery)
 	}
+	if capturedPageSize != "7" {
+		t.Fatalf("expected pageSize=7, got: %q", capturedPageSize)
+	}
+	if got := strings.ReplaceAll(capturedFields, " ", ""); got != "nextPageToken,drives(id,name,createdTime)" {
+		t.Fatalf("unexpected fields: %q", capturedFields)
+	}
 	if capturedPageToken != "tok" {
 		t.Fatalf("expected page token to be passed, got: %q", capturedPageToken)
+	}
+}
+
+func TestDriveDrivesCmd_TextPlain_MissingCreatedTime(t *testing.T) {
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"drives": []map[string]any{
+				{
+					"id":   "0ABCD1234",
+					"name": "Engineering",
+				},
+			},
+			"kind": "drive#driveList",
+		})
+	}))
+	defer srv.Close()
+
+	svc, err := drive.NewService(context.Background(),
+		option.WithoutAuthentication(),
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL+"/"),
+	)
+	if err != nil {
+		t.Fatalf("NewService: %v", err)
+	}
+	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
+
+	flags := &RootFlags{Account: "test@example.com"}
+
+	u, err := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
+	if err != nil {
+		t.Fatalf("ui.New: %v", err)
+	}
+	ctx := ui.WithUI(context.Background(), u)
+	ctx = outfmt.WithMode(ctx, outfmt.Mode{Plain: true})
+
+	out := captureStdout(t, func() {
+		cmd := &DriveDrivesCmd{}
+		if execErr := runKong(t, cmd, []string{}, ctx, flags); execErr != nil {
+			t.Fatalf("execute: %v", execErr)
+		}
+	})
+	if !strings.Contains(out, "ID\tNAME\tCREATED\n") {
+		t.Fatalf("missing header: %q", out)
+	}
+	if !strings.Contains(out, "0ABCD1234\tEngineering\t-\n") {
+		t.Fatalf("missing row w/ '-' created time: %q", out)
 	}
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.2 - Unreleased
+
+### Build
+
+- Deps: update Go modules and JS worker dev deps; bump pinned dev tools.
+
+### Tests
+
+- Drive: expand `drive drives` coverage (formatting + query/paging params).
+- Auth: use `net.ListenConfig.Listen` in tests to satisfy newer lint.
+
 ## 0.6.1 - 2026-01-15
 
 ### Added
