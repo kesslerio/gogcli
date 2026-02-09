@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -33,6 +36,8 @@ type SheetsCmd struct {
 	Create   SheetsCreateCmd   `cmd:"" name:"create" help:"Create a new spreadsheet"`
 	Copy     SheetsCopyCmd     `cmd:"" name:"copy" help:"Copy a Google Sheet"`
 	Export   SheetsExportCmd   `cmd:"" name:"export" help:"Export a Google Sheet (pdf|xlsx|csv) via Drive"`
+	Read     SheetsReadCmd     `cmd:"" name:"read" help:"Read values from a sheet and output as TSV"`
+	Write    SheetsWriteCmd    `cmd:"" name:"write" help:"Write CSV data to a sheet"`
 }
 
 type SheetsExportCmd struct {
@@ -471,5 +476,178 @@ func (c *SheetsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u.Out().Printf("Created spreadsheet: %s", resp.Properties.Title)
 	u.Out().Printf("ID: %s", resp.SpreadsheetId)
 	u.Out().Printf("URL: %s", resp.SpreadsheetUrl)
+	return nil
+}
+
+// SheetsReadCmd reads values from a sheet and outputs as TSV.
+type SheetsReadCmd struct {
+	SpreadsheetID string `arg:"" name:"spreadsheetId" help:"Spreadsheet ID"`
+	Sheet         string `name:"sheet" help:"Sheet name (default: first sheet)"`
+	Range         string `name:"range" help:"Range to read (default: entire sheet)"`
+}
+
+func (c *SheetsReadCmd) Run(ctx context.Context, flags *RootFlags) error {
+	account, err := requireAccount(flags)
+	if err != nil {
+		return err
+	}
+
+	spreadsheetID := strings.TrimSpace(c.SpreadsheetID)
+	if spreadsheetID == "" {
+		return usage("empty spreadsheetId")
+	}
+
+	svc, err := newSheetsService(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	// Build range specification
+	var rangeSpec string
+	if strings.TrimSpace(c.Sheet) != "" {
+		if strings.TrimSpace(c.Range) != "" {
+			rangeSpec = fmt.Sprintf("%s!%s", c.Sheet, c.Range)
+		} else {
+			rangeSpec = c.Sheet
+		}
+	} else {
+		if strings.TrimSpace(c.Range) != "" {
+			rangeSpec = c.Range
+		} else {
+			// Get metadata to find first sheet
+			meta, err := svc.Spreadsheets.Get(spreadsheetID).Context(ctx).Do()
+			if err != nil {
+				return fmt.Errorf("get spreadsheet metadata: %w", err)
+			}
+			if len(meta.Sheets) == 0 {
+				return errors.New("spreadsheet has no sheets")
+			}
+			rangeSpec = meta.Sheets[0].Properties.Title
+		}
+	}
+
+	rangeSpec = cleanRange(rangeSpec)
+
+	resp, err := svc.Spreadsheets.Values.Get(spreadsheetID, rangeSpec).Context(ctx).Do()
+	if err != nil {
+		return fmt.Errorf("get values: %w", err)
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, map[string]any{
+			"range":  resp.Range,
+			"values": resp.Values,
+		})
+	}
+
+	// Output as TSV
+	for _, row := range resp.Values {
+		cells := make([]string, len(row))
+		for i, cell := range row {
+			cells[i] = fmt.Sprintf("%v", cell)
+		}
+		fmt.Println(strings.Join(cells, "\t"))
+	}
+
+	return nil
+}
+
+// SheetsWriteCmd writes CSV data to a sheet.
+type SheetsWriteCmd struct {
+	SpreadsheetID string `arg:"" name:"spreadsheetId" help:"Spreadsheet ID"`
+	File          string `name:"file" help:"CSV file to write (or stdin if omitted)" type:"existingfile"`
+	Sheet         string `name:"sheet" help:"Target sheet name (default: first sheet)"`
+	Range         string `name:"range" help:"Starting cell (default: A1)" default:"A1"`
+}
+
+func (c *SheetsWriteCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	account, err := requireAccount(flags)
+	if err != nil {
+		return err
+	}
+
+	spreadsheetID := strings.TrimSpace(c.SpreadsheetID)
+	if spreadsheetID == "" {
+		return usage("empty spreadsheetId")
+	}
+
+	svc, err := newSheetsService(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	// Determine target sheet
+	targetSheet := strings.TrimSpace(c.Sheet)
+	if targetSheet == "" {
+		// Get metadata to find first sheet
+		meta, err := svc.Spreadsheets.Get(spreadsheetID).Context(ctx).Do()
+		if err != nil {
+			return fmt.Errorf("get spreadsheet metadata: %w", err)
+		}
+		if len(meta.Sheets) == 0 {
+			return errors.New("spreadsheet has no sheets")
+		}
+		targetSheet = meta.Sheets[0].Properties.Title
+	}
+
+	// Read CSV input
+	var input []byte
+	if strings.TrimSpace(c.File) != "" {
+		input, err = os.ReadFile(c.File)
+		if err != nil {
+			return fmt.Errorf("read file: %w", err)
+		}
+	} else {
+		input, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("read stdin: %w", err)
+		}
+	}
+
+	// Parse CSV
+	reader := csv.NewReader(strings.NewReader(string(input)))
+	reader.FieldsPerRecord = -1 // Allow variable fields per record
+	records, err := reader.ReadAll()
+	if err != nil {
+		return fmt.Errorf("parse CSV: %w", err)
+	}
+
+	// Convert to interface{}[][]
+	values := make([][]interface{}, len(records))
+	for i, record := range records {
+		values[i] = make([]interface{}, len(record))
+		for j, cell := range record {
+			values[i][j] = cell
+		}
+	}
+
+	// Build range
+	rangeSpec := fmt.Sprintf("%s!%s", targetSheet, c.Range)
+	rangeSpec = cleanRange(rangeSpec)
+
+	// Update values
+	vr := &sheets.ValueRange{
+		Values: values,
+	}
+
+	resp, err := svc.Spreadsheets.Values.Update(spreadsheetID, rangeSpec, vr).
+		ValueInputOption("USER_ENTERED").
+		Context(ctx).
+		Do()
+	if err != nil {
+		return fmt.Errorf("update values: %w", err)
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, map[string]any{
+			"updatedRange":   resp.UpdatedRange,
+			"updatedRows":    resp.UpdatedRows,
+			"updatedColumns": resp.UpdatedColumns,
+			"updatedCells":   resp.UpdatedCells,
+		})
+	}
+
+	u.Out().Printf("Updated %d cells in %s", resp.UpdatedCells, resp.UpdatedRange)
 	return nil
 }
