@@ -679,20 +679,28 @@ func writeMarkdownToDoc(ctx context.Context, svc *docs.Service, docID string, ma
 	}
 
 	// Now apply styles
+	// IMPORTANT: Google Docs API uses UTF-16 code unit indices, and paragraph
+	// style ranges must NOT include the trailing \n, otherwise the style bleeds
+	// into the next paragraph.
 	var styleRequests []*docs.Request
 	idx := startIdx
 
 	for _, seg := range segments {
-		segLen := int64(len(seg.text))
+		segLen := utf16CodeUnitCount(seg.text)
 		paraStartIdx := idx
 		paraEndIdx := idx + segLen
+		// For style/bullet ranges, exclude the trailing newline to prevent bleed
+		paraStyleEndIdx := paraEndIdx
+		if strings.HasSuffix(seg.text, "\n") {
+			paraStyleEndIdx = paraEndIdx - 1 // \n is 1 UTF-16 code unit
+		}
 
-		if seg.style != "" && seg.style != "NORMAL_TEXT" {
+		if seg.style != "" && seg.style != "NORMAL_TEXT" && paraStyleEndIdx > paraStartIdx {
 			styleRequests = append(styleRequests, &docs.Request{
 				UpdateParagraphStyle: &docs.UpdateParagraphStyleRequest{
 					Range: &docs.Range{
 						StartIndex: paraStartIdx,
-						EndIndex:   paraEndIdx,
+						EndIndex:   paraStyleEndIdx,
 					},
 					ParagraphStyle: &docs.ParagraphStyle{
 						NamedStyleType: seg.style,
@@ -702,22 +710,22 @@ func writeMarkdownToDoc(ctx context.Context, svc *docs.Service, docID string, ma
 			})
 		}
 
-		if seg.isBullet {
+		if seg.isBullet && paraStyleEndIdx > paraStartIdx {
 			styleRequests = append(styleRequests, &docs.Request{
 				CreateParagraphBullets: &docs.CreateParagraphBulletsRequest{
 					Range: &docs.Range{
 						StartIndex: paraStartIdx,
-						EndIndex:   paraEndIdx,
+						EndIndex:   paraStyleEndIdx,
 					},
 					BulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
 				},
 			})
-		} else if seg.isNumbered {
+		} else if seg.isNumbered && paraStyleEndIdx > paraStartIdx {
 			styleRequests = append(styleRequests, &docs.Request{
 				CreateParagraphBullets: &docs.CreateParagraphBulletsRequest{
 					Range: &docs.Range{
 						StartIndex: paraStartIdx,
-						EndIndex:   paraEndIdx,
+						EndIndex:   paraStyleEndIdx,
 					},
 					BulletPreset: "NUMBERED_DECIMAL_NESTED",
 				},
