@@ -487,6 +487,7 @@ type SheetsReadCmd struct {
 }
 
 func (c *SheetsReadCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
 	account, err := requireAccount(flags)
 	if err != nil {
 		return err
@@ -546,18 +547,19 @@ func (c *SheetsReadCmd) Run(ctx context.Context, flags *RootFlags) error {
 		for i, cell := range row {
 			cells[i] = fmt.Sprintf("%v", cell)
 		}
-		fmt.Println(strings.Join(cells, "\t"))
+		u.Out().Println(strings.Join(cells, "\t"))
 	}
 
 	return nil
 }
 
-// SheetsWriteCmd writes CSV data to a sheet.
+// SheetsWriteCmd writes CSV/TSV data to a sheet.
 type SheetsWriteCmd struct {
 	SpreadsheetID string `arg:"" name:"spreadsheetId" help:"Spreadsheet ID"`
 	File          string `name:"file" help:"CSV file to write (or stdin if omitted)" type:"existingfile"`
 	Sheet         string `name:"sheet" help:"Target sheet name (default: first sheet)"`
 	Range         string `name:"range" help:"Starting cell (default: A1)" default:"A1"`
+	Delimiter     string `name:"delimiter" help:"CSV delimiter: comma (default) or tab" enum:",,tab" default:","`
 }
 
 func (c *SheetsWriteCmd) Run(ctx context.Context, flags *RootFlags) error {
@@ -608,6 +610,15 @@ func (c *SheetsWriteCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// Parse CSV
 	reader := csv.NewReader(strings.NewReader(string(input)))
 	reader.FieldsPerRecord = -1 // Allow variable fields per record
+	
+	// Set delimiter based on flag
+	switch c.Delimiter {
+	case "tab":
+		reader.Comma = '\t'
+	default:
+		reader.Comma = ','
+	}
+	
 	records, err := reader.ReadAll()
 	if err != nil {
 		return fmt.Errorf("parse CSV: %w", err)

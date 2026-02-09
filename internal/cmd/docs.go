@@ -318,6 +318,22 @@ func isDocsNotFound(err error) bool {
 	return apiErr.Code == http.StatusNotFound
 }
 
+// utf16CodeUnitCount returns the number of UTF-16 code units in a string.
+// Google Docs API uses UTF-16 code unit offsets for formatting ranges.
+// Characters outside the Basic Multilingual Plane (like emojis) are encoded
+// as surrogate pairs and count as 2 code units.
+func utf16CodeUnitCount(s string) int64 {
+	var count int64
+	for _, r := range s {
+		if r >= 0x10000 {
+			count += 2 // Surrogate pair
+		} else {
+			count++
+		}
+	}
+	return count
+}
+
 // DocsWriteCmd writes markdown content to a Google Doc.
 type DocsWriteCmd struct {
 	DocID string `arg:"" name:"docId" help:"Doc ID"`
@@ -399,12 +415,15 @@ func (c *DocsAppendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// Get current document to find end index
 	doc, err := svc.Documents.Get(id).Context(ctx).Do()
 	if err != nil {
+		if isDocsNotFound(err) {
+			return fmt.Errorf("doc not found or not a Google Doc (id=%s)", id)
+		}
 		return err
 	}
 
 	endIndex := int64(1)
 	if doc.Body != nil && len(doc.Body.Content) > 0 {
-		endIndex = doc.Body.Content[len(doc.Body.Content)-1].EndIndex - 1
+		endIndex = doc.Body.Content[len(doc.Body.Content)-1].EndIndex
 	}
 
 	// Parse markdown and apply to doc
@@ -485,10 +504,12 @@ func clearDocsContent(ctx context.Context, svc *docs.Service, docID string) erro
 	}
 
 	if endIndex <= 2 {
-		return nil // Document is already empty
+		return nil // Document is already empty (just has the mandatory final newline)
 	}
 
-	// Delete from index 1 to end-1 (index 0 is the start of the document)
+	// Delete from index 1 to endIndex - 1.
+	// Google Docs always has a final newline at the end with index endIndex.
+	// We delete everything up to (but not including) that final newline.
 	req := &docs.BatchUpdateDocumentRequest{
 		Requests: []*docs.Request{
 			{
@@ -557,16 +578,19 @@ func writeMarkdownToDoc(ctx context.Context, svc *docs.Service, docID string, ma
 			s.style = "NORMAL_TEXT"
 		}
 
-		// Check list items
-		if strings.HasPrefix(text, "- ") || strings.HasPrefix(text, "* ") {
-			s.isBullet = true
-			text = text[2:]
-		} else if len(text) >= 3 && text[0] >= '0' && text[0] <= '9' && text[1] == '.' && text[2] == ' ' {
-			s.isNumbered = true
-			text = text[3:]
+		// Check list items (only for NORMAL_TEXT, not headings)
+		if s.style == "NORMAL_TEXT" {
+			if strings.HasPrefix(text, "- ") || strings.HasPrefix(text, "* ") {
+				s.isBullet = true
+				text = text[2:]
+			} else if len(text) >= 3 && text[0] >= '0' && text[0] <= '9' && text[1] == '.' && text[2] == ' ' {
+				s.isNumbered = true
+				text = text[3:]
+			}
 		}
 
-		// Simple bold/italic parser
+		// Simple bold/italic parser with UTF-16 code unit awareness
+		// Google Docs API expects UTF-16 code unit offsets, not byte offsets
 		var cleanText strings.Builder
 		var currentOffset int64
 		
@@ -581,38 +605,44 @@ func writeMarkdownToDoc(ctx context.Context, svc *docs.Service, docID string, ma
 			}
 			
 			if boldStart != -1 && (italicStart == -1 || boldStart <= italicStart) {
-				cleanText.WriteString(tempText[:boldStart])
-				currentOffset += int64(len(tempText[:boldStart]))
+				// Process text before the bold marker
+				beforeBold := tempText[:boldStart]
+				cleanText.WriteString(beforeBold)
+				currentOffset += utf16CodeUnitCount(beforeBold)
+				
 				tempText = tempText[boldStart+2:]
 				boldEnd := strings.Index(tempText, "**")
 				if boldEnd != -1 {
 					innerText := tempText[:boldEnd]
 					s.ranges = append(s.ranges, formatRange{
 						start: currentOffset,
-						end:   currentOffset + int64(len(innerText)),
+						end:   currentOffset + utf16CodeUnitCount(innerText),
 						bold:  true,
 					})
 					cleanText.WriteString(innerText)
-					currentOffset += int64(len(innerText))
+					currentOffset += utf16CodeUnitCount(innerText)
 					tempText = tempText[boldEnd+2:]
 				} else {
 					cleanText.WriteString("**")
 					currentOffset += 2
 				}
 			} else if italicStart != -1 {
-				cleanText.WriteString(tempText[:italicStart])
-				currentOffset += int64(len(tempText[:italicStart]))
+				// Process text before the italic marker
+				beforeItalic := tempText[:italicStart]
+				cleanText.WriteString(beforeItalic)
+				currentOffset += utf16CodeUnitCount(beforeItalic)
+				
 				tempText = tempText[italicStart+1:]
 				italicEnd := strings.Index(tempText, "*")
 				if italicEnd != -1 {
 					innerText := tempText[:italicEnd]
 					s.ranges = append(s.ranges, formatRange{
 						start: currentOffset,
-						end:   currentOffset + int64(len(innerText)),
+						end:   currentOffset + utf16CodeUnitCount(innerText),
 						italic: true,
 					})
 					cleanText.WriteString(innerText)
-					currentOffset += int64(len(innerText))
+					currentOffset += utf16CodeUnitCount(innerText)
 					tempText = tempText[italicEnd+1:]
 				} else {
 					cleanText.WriteString("*")
@@ -721,6 +751,7 @@ func writeMarkdownToDoc(ctx context.Context, svc *docs.Service, docID string, ma
 	}
 
 	if len(styleRequests) > 0 {
+		// Google Docs API has a limit of 50 requests per batchUpdate call.
 		const batchSize = 50
 		for i := 0; i < len(styleRequests); i += batchSize {
 			end := i + batchSize
