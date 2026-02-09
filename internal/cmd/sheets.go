@@ -559,7 +559,7 @@ type SheetsWriteCmd struct {
 	File          string `name:"file" help:"CSV file to write (or stdin if omitted)" type:"existingfile"`
 	Sheet         string `name:"sheet" help:"Target sheet name (default: first sheet)"`
 	Range         string `name:"range" help:"Starting cell (default: A1)" default:"A1"`
-	Delimiter     string `name:"delimiter" help:"CSV delimiter: comma (default) or tab" enum:",,tab" default:","`
+	Delimiter     string `name:"delimiter" help:"CSV delimiter: comma (default) or tab" enum:"comma,tab" default:"comma"`
 }
 
 func (c *SheetsWriteCmd) Run(ctx context.Context, flags *RootFlags) error {
