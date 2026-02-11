@@ -113,6 +113,7 @@ func (c *DocsInfoCmd) Run(ctx context.Context, flags *RootFlags) error {
 type DocsCreateCmd struct {
 	Title  string `arg:"" name:"title" help:"Doc title"`
 	Parent string `name:"parent" help:"Destination folder ID"`
+	File   string `name:"file" help:"Markdown file to write into the new doc" type:"existingfile"`
 }
 
 func (c *DocsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
@@ -151,6 +152,26 @@ func (c *DocsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if created == nil {
 		return errors.New("create failed")
+	}
+
+	// If content was provided via --file, write it to the new doc.
+	// Note: unlike `docs write`, we don't read stdin when --file is omitted
+	// to avoid blocking when create is called without piped input.
+	var input []byte
+	if strings.TrimSpace(c.File) != "" {
+		input, err = readInput(c.File)
+		if err != nil {
+			return fmt.Errorf("read content: %w", err)
+		}
+	}
+	if len(input) > 0 {
+		docsSvc, err := newDocsService(ctx, account)
+		if err != nil {
+			return fmt.Errorf("docs service for write: %w", err)
+		}
+		if err := writeMarkdownToDoc(ctx, docsSvc, created.Id, string(input), 1); err != nil {
+			return fmt.Errorf("write content to new doc: %w", err)
+		}
 	}
 
 	if outfmt.IsJSON(ctx) {
