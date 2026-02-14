@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -306,7 +307,11 @@ func TestDriveUpload_Replace_KeepRevisionForeverAndMimeType(t *testing.T) {
 			})
 			return
 		case strings.HasPrefix(r.URL.Path, "/upload/drive/v3/files/") && r.Method == http.MethodPatch:
-			sawKeepRevisionForever = r.URL.Query().Get("keepRevisionForever") == "true"
+			parsedKeepRevisionForever, parseBoolErr := strconv.ParseBool(r.URL.Query().Get("keepRevisionForever"))
+			if parseBoolErr != nil {
+				t.Fatalf("ParseBool: %v", parseBoolErr)
+			}
+			sawKeepRevisionForever = parsedKeepRevisionForever
 			body, readErr := io.ReadAll(r.Body)
 			if readErr != nil {
 				t.Fatalf("ReadAll: %v", readErr)
@@ -353,7 +358,7 @@ func TestDriveUpload_Replace_KeepRevisionForeverAndMimeType(t *testing.T) {
 		t.Fatalf("replace: %v", err)
 	}
 	if !sawKeepRevisionForever {
-		t.Fatalf("expected keepRevisionForever=true")
+		t.Fatalf("expected keepRevisionForever query param set")
 	}
 	if !sawMimeType {
 		t.Fatalf("expected upload body to include custom mime type %q", customMimeType)
@@ -368,7 +373,11 @@ func TestDriveUpload_Create_KeepRevisionForever(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/upload/drive/v3/files" && r.Method == http.MethodPost:
-			sawKeepRevisionForever = r.URL.Query().Get("keepRevisionForever") == "true"
+			parsedKeepRevisionForever, parseBoolErr := strconv.ParseBool(r.URL.Query().Get("keepRevisionForever"))
+			if parseBoolErr != nil {
+				t.Fatalf("ParseBool: %v", parseBoolErr)
+			}
+			sawKeepRevisionForever = parsedKeepRevisionForever
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":   "new1",
@@ -409,6 +418,6 @@ func TestDriveUpload_Create_KeepRevisionForever(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 	if !sawKeepRevisionForever {
-		t.Fatalf("expected keepRevisionForever=true")
+		t.Fatalf("expected keepRevisionForever query param set")
 	}
 }

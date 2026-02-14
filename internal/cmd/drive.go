@@ -372,6 +372,17 @@ func (c *DriveUploadCmd) Run(ctx context.Context, flags *RootFlags) error {
 	fileName := strings.TrimSpace(c.Name)
 	isExplicitName := fileName != ""
 
+	var (
+		convertMimeType string
+		convert         bool
+	)
+	if replaceFileID == "" {
+		convertMimeType, convert, err = driveUploadConvertMimeType(localPath, c.Convert, c.ConvertTo)
+		if err != nil {
+			return err
+		}
+	}
+
 	svc, err := newDriveService(ctx, account)
 	if err != nil {
 		return err
@@ -380,10 +391,6 @@ func (c *DriveUploadCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if replaceFileID == "" {
 		if fileName == "" {
 			fileName = filepath.Base(localPath)
-		}
-		convertMimeType, convert, err := driveUploadConvertMimeType(localPath, c.Convert, c.ConvertTo)
-		if err != nil {
-			return err
 		}
 
 		meta := &drive.File{Name: fileName}
@@ -406,9 +413,9 @@ func (c *DriveUploadCmd) Run(ctx context.Context, flags *RootFlags) error {
 			createCall = createCall.KeepRevisionForever(true)
 		}
 
-		created, err := createCall.Do()
-		if err != nil {
-			return err
+		created, createErr := createCall.Do()
+		if createErr != nil {
+			return createErr
 		}
 
 		if outfmt.IsJSON(ctx) {
@@ -465,7 +472,7 @@ func (c *DriveUploadCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	u.Out().Printf("id\t%s", updated.Id)
 	u.Out().Printf("name\t%s", updated.Name)
-	u.Out().Printf("replaced\ttrue")
+	u.Out().Printf("replaced\t%t", true)
 	if updated.WebViewLink != "" {
 		u.Out().Printf("link\t%s", updated.WebViewLink)
 	}
