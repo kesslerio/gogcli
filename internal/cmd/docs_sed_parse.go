@@ -317,7 +317,10 @@ func parseAddress(raw string) (*sedAddress, string, error) {
 		i++
 	}
 	start, err := strconv.Atoi(raw[:i])
-	if err != nil || start < 1 {
+	if err != nil {
+		return nil, raw, nil //nolint:nilerr // not an address, pass through
+	}
+	if start < 1 {
 		return nil, raw, nil
 	}
 
