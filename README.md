@@ -336,6 +336,8 @@ gog auth add you@gmail.com --services gmail --gmail-scope full
 gog auth add you@gmail.com --services gmail --gmail-scope readonly
 # Example: readonly on both Gmail and Drive
 gog auth add you@gmail.com --services gmail,drive --gmail-scope readonly --drive-scope readonly
+# Example: append one custom scope beyond the built-in Gmail scope set
+gog auth add you@gmail.com --services gmail --extra-scopes https://www.googleapis.com/auth/gmail.labels
 ```
 
 Notes:
@@ -343,6 +345,7 @@ Notes:
 - `--drive-scope readonly` is enough for listing/downloading/exporting via Drive (write operations will 403).
 - `--drive-scope file` is write-capable (limited to files created/opened by this app) and can’t be combined with `--readonly`.
 - `--gmail-scope readonly` requests `gmail.readonly` (no modify/settings write scopes).
+- `--extra-scopes` appends additional OAuth scope URIs after the built-in service scope set; remote step-1 guidance replays it so step 2 requests the same token.
 - For `--readonly`, `--drive-scope readonly|file`, or `--gmail-scope readonly`, auth disables Google `include_granted_scopes` to prevent old broader grants from silently accumulating.
 
 If you need to add services later and Google doesn't return a refresh token, re-run with `--force-consent`:

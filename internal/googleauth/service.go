@@ -56,9 +56,10 @@ const (
 )
 
 type ScopeOptions struct {
-	Readonly   bool
-	DriveScope DriveScopeMode
-	GmailScope GmailScopeMode
+	Readonly    bool
+	DriveScope  DriveScopeMode
+	GmailScope  GmailScopeMode
+	ExtraScopes []string
 }
 
 type serviceInfo struct {
@@ -386,7 +387,11 @@ func ScopesForManageWithOptions(services []Service, opts ScopeOptions) ([]string
 		return nil, err
 	}
 
-	return mergeScopes(scopes, []string{scopeOpenID, scopeEmail, scopeUserinfoEmail}), nil
+	merged := mergeScopes(scopes, []string{scopeOpenID, scopeEmail, scopeUserinfoEmail})
+	if len(opts.ExtraScopes) > 0 {
+		merged = mergeScopes(merged, opts.ExtraScopes)
+	}
+	return merged, nil
 }
 
 func scopesForServicesWithOptions(services []Service, opts ScopeOptions) ([]string, error) {
