@@ -141,6 +141,16 @@ gog auth add you@gmail.com --services user --remote --step 2 --auth-url 'http://
 - The `state` is cached on disk for a short time (about 10 minutes). If it expires, rerun step 1.
 - Remote step 2 requires a redirect URL that includes `state` (state check mandatory).
 
+Direct access token flow (headless/CI, no stored refresh token):
+
+```bash
+gog --access-token "$(gcloud auth print-access-token)" gmail labels list
+```
+
+- Also available as `GOG_ACCESS_TOKEN`
+- Bypasses stored refresh tokens and keyring lookup
+- Token expires in about 1 hour; no auto-refresh
+
 ### 4. Test Authentication
 
 ```bash
@@ -422,6 +432,7 @@ gog keep get <noteId> --account you@yourdomain.com
 ### Environment Variables
 
 - `GOG_ACCOUNT` - Default account email or alias to use (avoids repeating `--account`; otherwise uses keyring default or a single stored token)
+- `GOG_ACCESS_TOKEN` - Use a provided access token directly (headless/CI; no auto-refresh)
 - `GOG_CLIENT` - OAuth client name (selects stored credentials + token bucket)
 - `GOG_JSON` - Default JSON output
 - `GOG_PLAIN` - Default plain output

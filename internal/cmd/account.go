@@ -10,6 +10,8 @@ import (
 
 var openSecretsStoreForAccount = secrets.OpenDefault
 
+const accessTokenPlaceholderAccount = "access-token-user"
+
 func requireAccount(flags *RootFlags) (string, error) {
 	client := config.DefaultClientName
 	var err error
@@ -19,6 +21,7 @@ func requireAccount(flags *RootFlags) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	hasAccessToken := flags != nil && strings.TrimSpace(flags.AccessToken) != ""
 	if v := strings.TrimSpace(flags.Account); v != "" {
 		if resolved, ok, err := resolveAccountAlias(v); err != nil {
 			return "", err
@@ -44,6 +47,10 @@ func requireAccount(flags *RootFlags) (string, error) {
 		if v != "" {
 			return v, nil
 		}
+	}
+
+	if hasAccessToken {
+		return accessTokenPlaceholderAccount, nil
 	}
 
 	if store, err := openSecretsStoreForAccount(); err == nil {
