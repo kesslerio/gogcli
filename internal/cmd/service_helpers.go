@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/classroom/v1"
 	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/gmail/v1"
@@ -27,6 +28,10 @@ func requireCalendarService(ctx context.Context, flags *RootFlags) (string, *cal
 
 func requireGmailService(ctx context.Context, flags *RootFlags) (string, *gmail.Service, error) {
 	return requireGoogleService(ctx, flags, newGmailService)
+}
+
+func requireClassroomService(ctx context.Context, flags *RootFlags) (string, *classroom.Service, error) {
+	return requireGoogleService(ctx, flags, newClassroomService)
 }
 
 func requireGoogleService[T any](ctx context.Context, flags *RootFlags, newService func(context.Context, string) (*T, error)) (string, *T, error) {
