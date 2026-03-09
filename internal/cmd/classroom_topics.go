@@ -45,9 +45,9 @@ func (c *ClassroomTopicsListCmd) Run(ctx context.Context, flags *RootFlags) erro
 		if strings.TrimSpace(pageToken) != "" {
 			call = call.PageToken(pageToken)
 		}
-		resp, err := call.Do()
-		if err != nil {
-			return nil, "", wrapClassroomError(err)
+		resp, callErr := call.Do()
+		if callErr != nil {
+			return nil, "", wrapClassroomError(callErr)
 		}
 		return resp.Topic, resp.NextPageToken, nil
 	}
