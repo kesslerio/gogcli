@@ -15,7 +15,7 @@ import (
 )
 
 func TestGmailWatchServer_ServeHTTP_ExcludeLabels_SkipsHook(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {

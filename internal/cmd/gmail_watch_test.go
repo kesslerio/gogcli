@@ -23,7 +23,7 @@ func TestGmailWatchStartCmd_JSON(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	var watchReq struct {
 		TopicName string   `json:"topicName"`
@@ -125,7 +125,7 @@ func TestGmailWatchServerServeHTTP_TruncateBody(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("me@example.com")
 	if err != nil {

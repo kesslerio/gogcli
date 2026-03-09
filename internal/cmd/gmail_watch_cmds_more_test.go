@@ -22,7 +22,7 @@ func TestGmailWatchRenewAndStop_JSON(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -97,7 +97,7 @@ func TestGmailWatchStatusAndStop_Text(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {

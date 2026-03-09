@@ -73,7 +73,7 @@ func TestGmailWatchStartCmd_NewServiceError(t *testing.T) {
 		return nil, errors.New("boom")
 	}
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
 	if uiErr != nil {
@@ -90,7 +90,7 @@ func TestGmailWatchStartCmd_LabelResolveError(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/gmail/v1/users/me/labels") {
@@ -126,7 +126,7 @@ func TestGmailWatchStartCmd_RequestError(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/gmail/v1/users/me/watch") {
@@ -162,7 +162,7 @@ func TestGmailWatchStartCmd_BuildStateError(t *testing.T) {
 	origNew := newGmailService
 	t.Cleanup(func() { newGmailService = origNew })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/gmail/v1/users/me/watch") {
@@ -210,7 +210,7 @@ func TestGmailWatchStatusCmd_MissingAccount(t *testing.T) {
 }
 
 func TestGmailWatchStatusCmd_LoadError(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
 	if uiErr != nil {
@@ -224,7 +224,7 @@ func TestGmailWatchStatusCmd_LoadError(t *testing.T) {
 }
 
 func TestGmailWatchRenewCmd_MissingTopic(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
@@ -256,7 +256,7 @@ func TestGmailWatchRenewCmd_MissingAccount(t *testing.T) {
 }
 
 func TestGmailWatchRenewCmd_LoadError(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
 	if uiErr != nil {
@@ -270,7 +270,7 @@ func TestGmailWatchRenewCmd_LoadError(t *testing.T) {
 }
 
 func TestGmailWatchRenewCmd_InvalidTTL(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
@@ -301,7 +301,7 @@ func TestGmailWatchRenewCmd_NewServiceError(t *testing.T) {
 		return nil, errors.New("down")
 	}
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
@@ -374,7 +374,7 @@ func TestGmailWatchServeCmd_LoadStoreError(t *testing.T) {
 	// Guard against hangs if a watch state file exists in the runner's home.
 	listenAndServe = func(*http.Server) error { return errors.New("unexpected listen") }
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
 	if uiErr != nil {
@@ -403,7 +403,7 @@ func TestGmailWatchServeCmd_HookFlagsError(t *testing.T) {
 	origListen := listenAndServe
 	t.Cleanup(func() { listenAndServe = origListen })
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
@@ -432,7 +432,7 @@ func TestGmailWatchServeCmd_OIDCValidatorError(t *testing.T) {
 		newOIDCValidator = origOIDC
 	})
 
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {

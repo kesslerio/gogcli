@@ -14,13 +14,12 @@ import (
 	"github.com/steipete/gogcli/internal/ui"
 )
 
-func setWatchTestConfigHome(t *testing.T) string {
+func setWatchTestConfigHome(t *testing.T) {
 	t.Helper()
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "xdg-config"))
-	return home
 }
 
 func TestWriteWatchState_TextAndJSON(t *testing.T) {
@@ -139,7 +138,7 @@ func TestIsLoopbackHost(t *testing.T) {
 }
 
 func TestGmailWatchStore_StateHelpers(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("User+X@Example.COM")
 	if err != nil {

@@ -22,7 +22,7 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func TestGmailWatchServer_SendHook_TransportError(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
@@ -79,7 +79,7 @@ func TestGmailWatchServer_ServeHTTP_HandlePushError(t *testing.T) {
 }
 
 func TestGmailWatchServer_ServeHTTP_NoHook_Accepted(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
@@ -152,7 +152,7 @@ func TestGmailWatchServer_ServeHTTP_NoHook_Accepted(t *testing.T) {
 }
 
 func TestGmailWatchServer_ServeHTTP_HookSuccess(t *testing.T) {
-	_ = setWatchTestConfigHome(t)
+	setWatchTestConfigHome(t)
 
 	store, err := newGmailWatchStore("a@b.com")
 	if err != nil {
