@@ -119,6 +119,9 @@ func TestListCalendarEvents_ShowDeletedAllPagesPreservesCancellationDetails(t *t
 	if !ok || originalStart["dateTime"] != "2026-01-02T10:00:00Z" {
 		t.Fatalf("cancelled instance originalStartTime=%#v", instance["originalStartTime"])
 	}
+	if instance["startLocal"] != "2026-01-02T10:00:00Z" || instance["startDayOfWeek"] != "Friday" {
+		t.Fatalf("cancelled instance localized start=%#v weekday=%#v", instance["startLocal"], instance["startDayOfWeek"])
+	}
 }
 
 func TestCalendarEventsListCall_EventTypesFilter(t *testing.T) {

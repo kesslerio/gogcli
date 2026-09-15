@@ -67,7 +67,15 @@ func listCalendarEvents(ctx context.Context, svc *calendar.Service, calendarID, 
 	if outfmt.IsJSON(ctx) {
 		jsonItems := make([]*eventWithDays, 0, len(events))
 		for _, e := range events {
-			jsonItems = append(jsonItems, wrapEventWithDaysWithTimezone(e.Event, calendarTimezone, loc))
+			jsonItems = append(jsonItems, &eventWithDays{
+				Event:          e.Event,
+				StartDayOfWeek: e.StartDayOfWeek,
+				EndDayOfWeek:   e.EndDayOfWeek,
+				Timezone:       e.Timezone,
+				EventTimezone:  e.EventTimezone,
+				StartLocal:     e.StartLocal,
+				EndLocal:       e.EndLocal,
+			})
 		}
 		if err := outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{
 			"events":        jsonItems,
