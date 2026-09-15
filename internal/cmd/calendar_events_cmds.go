@@ -23,7 +23,7 @@ type CalendarEventsCmd struct {
 	Max               int64    `name:"max" aliases:"limit" help:"Max results" default:"10"`
 	Page              string   `name:"page" aliases:"cursor" help:"Page token"`
 	AllPages          bool     `name:"all-pages" aliases:"allpages" help:"Fetch all pages"`
-	ShowDeleted       bool     `name:"show-deleted" help:"Include deleted events"`
+	ShowDeleted       bool     `name:"show-deleted" help:"Include deleted single events and recurring instances (Google omits recurring-series masters)"`
 	FailEmpty         bool     `name:"fail-empty" aliases:"non-empty,require-results" help:"Exit with code 3 if no results"`
 	Query             string   `name:"query" help:"Free text search"`
 	All               bool     `name:"all" help:"Fetch events from all calendars"`

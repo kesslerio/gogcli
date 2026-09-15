@@ -156,7 +156,6 @@ func listCalendarIDsEvents(ctx context.Context, svc *calendar.Service, calendarI
 				continue
 			}
 		}
-
 		for _, e := range events {
 			startDay, endDay := eventDaysOfWeek(e)
 			evTimezone := eventTimezone(e)
