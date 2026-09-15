@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/people/v1"
@@ -191,6 +192,25 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 			"ID\tSTART\tSTATUS\tEND\tSUMMARY\n"+
 				"event1\t2026-06-12T12:00:00+02:00\tcancelled\t2026-06-12T13:00:00+02:00\tPlanning\n",
 		)
+	})
+
+	t.Run("cancelled instance original start uses calendar timezone", func(t *testing.T) {
+		t.Parallel()
+		loc, err := time.LoadLocation("America/Los_Angeles")
+		if err != nil {
+			t.Fatalf("LoadLocation: %v", err)
+		}
+		tombstone := wrapEventWithCalendar(&calendar.Event{
+			Id:                "cancelled-instance",
+			Status:            "cancelled",
+			OriginalStartTime: &calendar.EventDateTime{DateTime: "2026-04-08T00:30:00Z"},
+		}, "cal1", "America/Los_Angeles", loc)
+		if tombstone.Start != nil {
+			t.Fatalf("raw tombstone start = %#v, want nil", tombstone.Start)
+		}
+		if tombstone.StartLocal != "2026-04-07T17:30:00-07:00" || tombstone.StartDayOfWeek != "Tuesday" {
+			t.Fatalf("localized start = %q (%q), want 2026-04-07T17:30:00-07:00 (Tuesday)", tombstone.StartLocal, tombstone.StartDayOfWeek)
+		}
 	})
 }
 

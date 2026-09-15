@@ -244,7 +244,13 @@ func renderCalendarEventsTable(ctx context.Context, events []*eventWithCalendar,
 }
 
 func wrapEventWithCalendar(event *calendar.Event, calendarID string, calendarTimezone string, loc *time.Location) *eventWithCalendar {
-	wrapped := wrapEventWithDaysWithTimezone(event, calendarTimezone, loc)
+	presentationEvent := event
+	if event != nil && event.Start == nil && event.OriginalStartTime != nil {
+		copyForPresentation := *event
+		copyForPresentation.Start = event.OriginalStartTime
+		presentationEvent = &copyForPresentation
+	}
+	wrapped := wrapEventWithDaysWithTimezone(presentationEvent, calendarTimezone, loc)
 	if wrapped == nil {
 		return &eventWithCalendar{Event: event, CalendarID: calendarID}
 	}
