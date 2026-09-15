@@ -140,7 +140,7 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 
 	t.Run("basic", func(t *testing.T) {
 		t.Parallel()
-		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, false, false))
+		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, false, false, false))
 		assertTableOutput(
 			t,
 			got,
@@ -157,7 +157,7 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 		got := renderPlainTable(
 			t,
 			[]*eventWithCalendar{&withDays},
-			calendarEventColumns(true, true, true),
+			calendarEventColumns(true, true, true, false),
 		)
 		assertTableOutput(
 			t,
@@ -170,13 +170,26 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 
 	t.Run("single calendar weekday fallback", func(t *testing.T) {
 		t.Parallel()
-		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, true, false))
+		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, true, false, false))
 		assertTableOutput(
 			t,
 			got,
 			"ID\tSTART\tSTART_DOW\tEND\tEND_DOW\tSUMMARY\n"+
 				"event1\t2026-06-12T12:00:00+02:00\tFriday\t"+
 				"2026-06-12T13:00:00+02:00\tFriday\tPlanning\n",
+		)
+	})
+
+	t.Run("deleted status", func(t *testing.T) {
+		t.Parallel()
+		deleted := *event
+		deleted.Status = "cancelled"
+		got := renderPlainTable(t, []*eventWithCalendar{&deleted}, calendarEventColumns(false, false, false, true))
+		assertTableOutput(
+			t,
+			got,
+			"ID\tSTART\tSTATUS\tEND\tSUMMARY\n"+
+				"event1\t2026-06-12T12:00:00+02:00\tcancelled\t2026-06-12T13:00:00+02:00\tPlanning\n",
 		)
 	})
 }

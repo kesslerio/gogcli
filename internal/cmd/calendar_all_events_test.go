@@ -197,3 +197,20 @@ func TestSortEventsBy_Summary(t *testing.T) {
 		}
 	}
 }
+
+func TestSortEventsBy_StartUsesOriginalStartForCancelledInstance(t *testing.T) {
+	events := []*eventWithCalendar{
+		{Event: &calendar.Event{
+			Id: "late-cancelled", Status: "cancelled",
+			OriginalStartTime: &calendar.EventDateTime{DateTime: "2025-01-01T15:00:00Z"},
+		}},
+		{Event: &calendar.Event{
+			Id: "early", Start: &calendar.EventDateTime{DateTime: "2025-01-01T08:00:00Z"},
+		}},
+	}
+
+	sortEventsBy(events, "start", "asc")
+	if events[0].Id != "early" || events[1].Id != "late-cancelled" {
+		t.Fatalf("start asc ids = [%s %s], want [early late-cancelled]", events[0].Id, events[1].Id)
+	}
+}

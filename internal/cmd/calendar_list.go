@@ -80,7 +80,7 @@ func listCalendarEvents(ctx context.Context, svc *calendar.Service, calendarID, 
 		}
 		return nil
 	}
-	return renderCalendarEventsTable(ctx, events, nextPageToken, false, showWeekday, showLocation, failEmpty, true)
+	return renderCalendarEventsTable(ctx, events, nextPageToken, false, showWeekday, showLocation, showDeleted, failEmpty, true)
 }
 
 type eventWithCalendar struct {
@@ -195,7 +195,7 @@ func listCalendarIDsEvents(ctx context.Context, svc *calendar.Service, calendarI
 		}
 		return nil
 	}
-	if err := renderCalendarEventsTable(ctx, all, "", true, showWeekday, showLocation, failEmpty, false); err != nil {
+	if err := renderCalendarEventsTable(ctx, all, "", true, showWeekday, showLocation, showDeleted, failEmpty, false); err != nil {
 		return err
 	}
 	printCalendarEventsNextPageHint(u, len(calendarIDs), nextPages)
@@ -222,7 +222,7 @@ func printCalendarEventsNextPageHint(u *ui.UI, calendarCount int, nextPages []ca
 	u.Err().Linef("# More results: use --all-pages to fetch every page (%d calendars have more results)", len(nextPages))
 }
 
-func renderCalendarEventsTable(ctx context.Context, events []*eventWithCalendar, nextPageToken string, includeCalendar, showWeekday, showLocation, failEmpty bool, printPageHint bool) error {
+func renderCalendarEventsTable(ctx context.Context, events []*eventWithCalendar, nextPageToken string, includeCalendar, showWeekday, showLocation, showDeleted, failEmpty bool, printPageHint bool) error {
 	u := ui.FromContext(ctx)
 	if len(events) == 0 {
 		u.Err().Println("No events")
@@ -233,7 +233,7 @@ func renderCalendarEventsTable(ctx context.Context, events []*eventWithCalendar,
 		ctx,
 		stdoutWriter(ctx),
 		compactCalendarRows(events),
-		calendarEventColumns(includeCalendar, showWeekday, showLocation),
+		calendarEventColumns(includeCalendar, showWeekday, showLocation, showDeleted),
 	); err != nil {
 		return err
 	}
@@ -266,6 +266,12 @@ func eventDisplayStart(e *eventWithCalendar) string {
 	}
 	if e == nil {
 		return ""
+	}
+	if e.Start == nil && e.OriginalStartTime != nil {
+		if e.OriginalStartTime.DateTime != "" {
+			return e.OriginalStartTime.DateTime
+		}
+		return e.OriginalStartTime.Date
 	}
 	return eventStart(e.Event)
 }
@@ -433,8 +439,11 @@ func eventCalendarID(e *eventWithCalendar) string {
 // All-day events fall back to midnight UTC, which is consistent enough for
 // ordering within a single result set.
 func eventStartInstant(e *eventWithCalendar) time.Time {
-	if e == nil || e.Event == nil || e.Start == nil {
+	if e == nil || e.Event == nil {
 		return time.Time{}
+	}
+	if e.Start == nil {
+		return eventDatePointInstant(e.OriginalStartTime)
 	}
 	return eventDatePointInstant(e.Start)
 }

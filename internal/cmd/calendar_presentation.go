@@ -150,8 +150,8 @@ func calendarTeamEventColumns() []outfmt.Column[teamEvent] {
 	}
 }
 
-func calendarEventColumns(includeCalendar, showWeekday, showLocation bool) []outfmt.Column[*eventWithCalendar] {
-	columns := make([]outfmt.Column[*eventWithCalendar], 0, 8)
+func calendarEventColumns(includeCalendar, showWeekday, showLocation, showDeleted bool) []outfmt.Column[*eventWithCalendar] {
+	columns := make([]outfmt.Column[*eventWithCalendar], 0, 9)
 	if includeCalendar {
 		columns = append(columns, outfmt.Column[*eventWithCalendar]{
 			Header: "CALENDAR",
@@ -170,6 +170,14 @@ func calendarEventColumns(includeCalendar, showWeekday, showLocation bool) []out
 			Value:  eventDisplayStart,
 		},
 	)
+	if showDeleted {
+		columns = append(columns, outfmt.Column[*eventWithCalendar]{
+			Header: "STATUS",
+			Value: func(event *eventWithCalendar) string {
+				return calendarEvent(event).Status
+			},
+		})
+	}
 	if showWeekday {
 		columns = append(columns, outfmt.Column[*eventWithCalendar]{
 			Header: "START_DOW",
