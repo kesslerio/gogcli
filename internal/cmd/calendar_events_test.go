@@ -32,7 +32,7 @@ func TestListCalendarEvents_JSON(t *testing.T) {
 
 	var output bytes.Buffer
 	ctx := newCmdRuntimeJSONOutputContext(t, &output, io.Discard)
-	if err := listCalendarEvents(ctx, svc, "cal1", "2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", ""); err != nil {
+	if err := listCalendarEvents(ctx, svc, "cal1", "2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", "", false); err != nil {
 		t.Fatalf("listCalendarEvents: %v", err)
 	}
 
@@ -84,7 +84,7 @@ func TestListCalendarEvents_TableUsesCalendarTimezone(t *testing.T) {
 
 	var output bytes.Buffer
 	ctx := newCmdRuntimeOutputContext(t, &output, io.Discard)
-	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", ""); err != nil {
+	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", "", false); err != nil {
 		t.Fatalf("listCalendarEvents: %v", err)
 	}
 	text := output.String()
@@ -129,7 +129,7 @@ func TestListCalendarEvents_TableIncludesLocation(t *testing.T) {
 
 	var output bytes.Buffer
 	ctx := newCmdRuntimeOutputContext(t, &output, io.Discard)
-	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", ""); err != nil {
+	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", "", false); err != nil {
 		t.Fatalf("listCalendarEvents: %v", err)
 	}
 	text := output.String()
@@ -139,7 +139,7 @@ func TestListCalendarEvents_TableIncludesLocation(t *testing.T) {
 	}
 
 	output.Reset()
-	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, true, "", ""); err != nil {
+	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, true, "", "", false); err != nil {
 		t.Fatalf("listCalendarEvents with location: %v", err)
 	}
 	text = output.String()
@@ -162,7 +162,7 @@ func TestListCalendarEvents_JSONUsesCalendarTimezoneForLocalFields(t *testing.T)
 
 	var output bytes.Buffer
 	ctx := newCmdRuntimeJSONOutputContext(t, &output, io.Discard)
-	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", ""); err != nil {
+	if err := listCalendarEvents(ctx, svc, "cal1", "2026-04-08T00:00:00Z", "2026-04-09T00:00:00Z", 10, "", false, false, "", "", "", "", nil, false, false, "", "", false); err != nil {
 		t.Fatalf("listCalendarEvents: %v", err)
 	}
 
@@ -188,6 +188,9 @@ func TestListCalendarEvents_JSONUsesCalendarTimezoneForLocalFields(t *testing.T)
 func TestCalendarEventsCmd_DefaultsToPrimary(t *testing.T) {
 	svc, closeServer := newCalendarServiceForTest(t, withPrimaryCalendar(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/calendars/primary/events") && r.Method == http.MethodGet {
+			if got := r.URL.Query().Get("showDeleted"); got != "false" {
+				t.Fatalf("default calendar events request must not enable deleted events, got %q", got)
+			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"items": []map[string]any{
@@ -238,6 +241,9 @@ func TestCalendarEventsCmd_CalendarsFlag(t *testing.T) {
 			})
 			return
 		case strings.Contains(r.URL.Path, "/calendars/c1/events") && r.Method == http.MethodGet:
+			if got := r.URL.Query().Get("showDeleted"); got != "true" {
+				t.Fatalf("c1 showDeleted=%q", got)
+			}
 			mu.Lock()
 			calls["c1"]++
 			mu.Unlock()
@@ -249,6 +255,9 @@ func TestCalendarEventsCmd_CalendarsFlag(t *testing.T) {
 			})
 			return
 		case strings.Contains(r.URL.Path, "/calendars/c2/events") && r.Method == http.MethodGet:
+			if got := r.URL.Query().Get("showDeleted"); got != "true" {
+				t.Fatalf("c2 showDeleted=%q", got)
+			}
 			mu.Lock()
 			calls["c2"]++
 			mu.Unlock()
@@ -277,10 +286,11 @@ func TestCalendarEventsCmd_CalendarsFlag(t *testing.T) {
 	flags := &RootFlags{Account: "a@b.com"}
 
 	cmd := &CalendarEventsCmd{
-		Calendars: "1,Family",
-		From:      "2025-01-01T00:00:00Z",
-		To:        "2025-01-02T00:00:00Z",
-		Max:       10,
+		Calendars:   "1,Family",
+		ShowDeleted: true,
+		From:        "2025-01-01T00:00:00Z",
+		To:          "2025-01-02T00:00:00Z",
+		Max:         10,
 	}
 	if err := cmd.Run(ctx, flags); err != nil {
 		t.Fatalf("Run: %v", err)

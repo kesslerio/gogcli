@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/people/v1"
@@ -140,7 +141,7 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 
 	t.Run("basic", func(t *testing.T) {
 		t.Parallel()
-		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, false, false))
+		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, false, false, false))
 		assertTableOutput(
 			t,
 			got,
@@ -157,7 +158,7 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 		got := renderPlainTable(
 			t,
 			[]*eventWithCalendar{&withDays},
-			calendarEventColumns(true, true, true),
+			calendarEventColumns(true, true, true, false),
 		)
 		assertTableOutput(
 			t,
@@ -170,7 +171,7 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 
 	t.Run("single calendar weekday fallback", func(t *testing.T) {
 		t.Parallel()
-		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, true, false))
+		got := renderPlainTable(t, []*eventWithCalendar{event}, calendarEventColumns(false, true, false, false))
 		assertTableOutput(
 			t,
 			got,
@@ -178,6 +179,38 @@ func TestCalendarEventPresentationSchemas(t *testing.T) {
 				"event1\t2026-06-12T12:00:00+02:00\tFriday\t"+
 				"2026-06-12T13:00:00+02:00\tFriday\tPlanning\n",
 		)
+	})
+
+	t.Run("deleted status", func(t *testing.T) {
+		t.Parallel()
+		deleted := *event
+		deleted.Status = "cancelled"
+		got := renderPlainTable(t, []*eventWithCalendar{&deleted}, calendarEventColumns(false, false, false, true))
+		assertTableOutput(
+			t,
+			got,
+			"ID\tSTART\tSTATUS\tEND\tSUMMARY\n"+
+				"event1\t2026-06-12T12:00:00+02:00\tcancelled\t2026-06-12T13:00:00+02:00\tPlanning\n",
+		)
+	})
+
+	t.Run("cancelled instance original start uses calendar timezone", func(t *testing.T) {
+		t.Parallel()
+		loc, err := time.LoadLocation("America/Los_Angeles")
+		if err != nil {
+			t.Fatalf("LoadLocation: %v", err)
+		}
+		tombstone := wrapEventWithCalendar(&calendar.Event{
+			Id:                "cancelled-instance",
+			Status:            "cancelled",
+			OriginalStartTime: &calendar.EventDateTime{DateTime: "2026-04-08T00:30:00Z"},
+		}, "cal1", "America/Los_Angeles", loc)
+		if tombstone.Start != nil {
+			t.Fatalf("raw tombstone start = %#v, want nil", tombstone.Start)
+		}
+		if tombstone.StartLocal != "2026-04-07T17:30:00-07:00" || tombstone.StartDayOfWeek != "Tuesday" {
+			t.Fatalf("localized start = %q (%q), want 2026-04-07T17:30:00-07:00 (Tuesday)", tombstone.StartLocal, tombstone.StartDayOfWeek)
+		}
 	})
 }
 
