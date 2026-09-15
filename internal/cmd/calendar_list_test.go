@@ -3,9 +3,11 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,57 +15,33 @@ import (
 	"google.golang.org/api/option"
 )
 
-func TestCalendarEventsListCall_HidesCancelledEvents(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.URL.Query().Get("showDeleted"); got != "false" {
-			t.Fatalf("expected showDeleted=false, got %q", got)
-		}
-		if got := r.URL.Query().Get("singleEvents"); got != "true" {
-			t.Fatalf("expected singleEvents=true, got %q", got)
-		}
+func TestCalendarEventsListCall_ShowDeletedOption(t *testing.T) {
+	for _, showDeleted := range []bool{false, true} {
+		t.Run(fmt.Sprintf("show_deleted_%t", showDeleted), func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if got := r.URL.Query().Get("showDeleted"); got != strconv.FormatBool(showDeleted) {
+					t.Fatalf("expected showDeleted=%t, got %q", showDeleted, got)
+				}
+				if got := r.URL.Query().Get("singleEvents"); got != "true" {
+					t.Fatalf("expected singleEvents=true, got %q", got)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{"items": []any{}})
+			}))
+			defer srv.Close()
 
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"items": []any{}})
-	}))
-	defer srv.Close()
-
-	svc, err := calendar.NewService(context.Background(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-		option.WithoutAuthentication(),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-
-	if _, err := calendarEventsListCall(context.Background(), svc, "primary", "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 10, "", "", "", "", nil, "", false).Do(); err != nil {
-		t.Fatalf("Do: %v", err)
-	}
-}
-
-func TestCalendarEventsListCall_ShowsCancelledEventsWhenRequested(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.URL.Query().Get("showDeleted"); got != "true" {
-			t.Fatalf("expected showDeleted=true, got %q", got)
-		}
-		if got := r.URL.Query().Get("singleEvents"); got != "true" {
-			t.Fatalf("expected singleEvents=true, got %q", got)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"items": []any{}})
-	}))
-	defer srv.Close()
-
-	svc, err := calendar.NewService(context.Background(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-		option.WithoutAuthentication(),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	if _, err := calendarEventsListCall(context.Background(), svc, "primary", "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 10, "", "", "", "", nil, "", true).Do(); err != nil {
-		t.Fatalf("Do: %v", err)
+			svc, err := calendar.NewService(context.Background(),
+				option.WithHTTPClient(srv.Client()),
+				option.WithEndpoint(srv.URL+"/"),
+				option.WithoutAuthentication(),
+			)
+			if err != nil {
+				t.Fatalf("NewService: %v", err)
+			}
+			if _, err := calendarEventsListCall(context.Background(), svc, "primary", "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 10, "", "", "", "", nil, "", showDeleted).Do(); err != nil {
+				t.Fatalf("Do: %v", err)
+			}
+		})
 	}
 }
 
