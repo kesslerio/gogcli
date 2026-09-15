@@ -20,6 +20,9 @@ func TestListAllCalendarsEvents_JSON(t *testing.T) {
 			})
 			return
 		case strings.Contains(r.URL.Path, "/calendars/cal1/events") && r.Method == http.MethodGet:
+			if got := r.URL.Query().Get("showDeleted"); got != "true" {
+				t.Fatalf("cal1 showDeleted=%q", got)
+			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"items": []map[string]any{
@@ -37,6 +40,9 @@ func TestListAllCalendarsEvents_JSON(t *testing.T) {
 			})
 			return
 		case strings.Contains(r.URL.Path, "/calendars/cal2/events") && r.Method == http.MethodGet:
+			if got := r.URL.Query().Get("showDeleted"); got != "true" {
+				t.Fatalf("cal2 showDeleted=%q", got)
+			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"items": []map[string]any{
@@ -60,7 +66,7 @@ func TestListAllCalendarsEvents_JSON(t *testing.T) {
 	ctx := newCalendarJSONContext(t)
 
 	jsonOut := captureStdout(t, func() {
-		if runErr := listAllCalendarsEvents(ctx, svc, "2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z", 10, "", false, false, "", "", "", "", false); runErr != nil {
+		if runErr := listAllCalendarsEvents(ctx, svc, "2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z", 10, "", false, false, "", "", "", "", false, true); runErr != nil {
 			t.Fatalf("listAllCalendarsEvents: %v", runErr)
 		}
 	})

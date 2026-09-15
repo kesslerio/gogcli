@@ -23,6 +23,7 @@ type CalendarEventsCmd struct {
 	Max               int64    `name:"max" aliases:"limit" help:"Max results" default:"10"`
 	Page              string   `name:"page" aliases:"cursor" help:"Page token"`
 	AllPages          bool     `name:"all-pages" aliases:"allpages" help:"Fetch all pages"`
+	ShowDeleted       bool     `name:"show-deleted" help:"Include deleted single events and recurring instances (Google omits recurring-series masters)"`
 	FailEmpty         bool     `name:"fail-empty" aliases:"non-empty,require-results" help:"Exit with code 3 if no results"`
 	Query             string   `name:"query" help:"Free text search"`
 	All               bool     `name:"all" help:"Fetch events from all calendars"`
@@ -77,7 +78,7 @@ func (c *CalendarEventsCmd) Run(ctx context.Context, flags *RootFlags) error {
 	from, to := timeRange.FormatRFC3339()
 
 	if c.All {
-		return listAllCalendarsEvents(ctx, svc, from, to, c.Max, c.Page, c.AllPages, c.FailEmpty, c.Query, c.PrivatePropFilter, c.SharedPropFilter, c.Fields, c.Weekday)
+		return listAllCalendarsEvents(ctx, svc, from, to, c.Max, c.Page, c.AllPages, c.FailEmpty, c.Query, c.PrivatePropFilter, c.SharedPropFilter, c.Fields, c.Weekday, c.ShowDeleted)
 	}
 	if len(calInputs) > 0 {
 		ids, err := resolveCalendarIDs(ctx, svc, calInputs)
@@ -87,9 +88,9 @@ func (c *CalendarEventsCmd) Run(ctx context.Context, flags *RootFlags) error {
 		if len(ids) == 0 {
 			return usage("no calendars specified")
 		}
-		return listSelectedCalendarsEvents(ctx, svc, ids, from, to, c.Max, c.Page, c.AllPages, c.FailEmpty, c.Query, c.PrivatePropFilter, c.SharedPropFilter, c.Fields, c.Weekday)
+		return listSelectedCalendarsEvents(ctx, svc, ids, from, to, c.Max, c.Page, c.AllPages, c.FailEmpty, c.Query, c.PrivatePropFilter, c.SharedPropFilter, c.Fields, c.Weekday, c.ShowDeleted)
 	}
-	return listCalendarEvents(ctx, svc, calendarID, from, to, c.Max, c.Page, c.AllPages, c.FailEmpty, c.Query, c.PrivatePropFilter, c.SharedPropFilter, c.Fields, c.Weekday)
+	return listCalendarEvents(ctx, svc, calendarID, from, to, c.Max, c.Page, c.AllPages, c.FailEmpty, c.Query, c.PrivatePropFilter, c.SharedPropFilter, c.Fields, c.Weekday, c.ShowDeleted)
 }
 
 type CalendarEventCmd struct {
